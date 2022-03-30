@@ -57,6 +57,7 @@ set listchars=eol:$,tab::\ ,trail:.,extends:>,precedes:<,nbsp:_
 "     set termguicolors
 "   endif
 " endif
+set termguicolors
 
 " Remove background color (only when running in terminals$)
 " if (has("autocmd") && !has("gui_running"))$
