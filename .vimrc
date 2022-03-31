@@ -1,11 +1,13 @@
 set number
 
 set tabstop=2                                   " a tab is how many spaces
+set softtabstop=2
 set shiftwidth=2                                " number of spaces to use for autoindenting
+set expandtab
+set smarttab            " insert tabs on the start of a line according to shiftwidth, not tabstop
+
 set autoindent                                  " always set autoindenting on
 filetype indent on
-
-set smarttab            " insert tabs on the start of a line according to shiftwidth, not tabstop
 
 set scrolloff=3         " keep 4 lines off the edges of the screen when scrolling
 
