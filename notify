@@ -1,0 +1,82 @@
+#!/bin/bash
+
+# Rename it to remove .sh extension
+# mv ~/bin/notify.sh ~/bin/notify
+
+# Make it executable
+# chmod +x ~/bin/notify
+
+# Make sure ~/bin is in your PATH (add this to ~/.zshrc or ~/.bashrc if not already there)
+# echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc
+
+# Load environment variables from ~/.env for safety
+# TG_BOT_TOKEN=""
+# TG_CHAT_ID=""
+ENV_FILE="$HOME/.env" # custom env file location
+if [ -f "$ENV_FILE" ]; then
+    source "$ENV_FILE"
+else
+    echo "Error: $ENV_FILE file not found"
+    exit 1
+fi
+
+# Verify environment variables are set
+if [ -z "$TG_BOT_TOKEN" ] || [ -z "$TG_CHAT_ID" ]; then
+    echo "Error: TG_BOT_TOKEN or TG_CHAT_ID not set in $ENV_FILE"
+    exit 1
+fi
+
+
+verbose=false
+curl_opts="-s"
+message=""
+    
+# Parse options
+while [[ "$1" == -* ]]; do
+    case "$1" in
+        -v|--verbose)
+            verbose=true
+            curl_opts="-v"
+            shift
+            ;;
+        --help)
+            echo "Usage: notify [-v|--verbose] <message>"
+            echo "  -v, --verbose    Show detailed curl output"
+            echo "  --help           Show this help message"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+# Check if message is provided
+if [ -z "$1" ]; then
+    echo "Error: Message is required"
+    echo "Usage: notify [-v|--verbose] <message>"
+    exit 1
+fi
+
+message="$*"
+
+# Prepare command
+cmd="curl $curl_opts 'https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage' \
+    -H 'Content-Type: application/json' \
+    -d '{\"chat_id\": \"${TG_CHAT_ID}\", \"text\": \"$message\"}'"
+
+# Execute and capture response
+if $verbose; then
+    echo "Sending message: $message"
+    echo "Command: $cmd"
+    eval $cmd
+else
+    response=$(eval $cmd)
+    if [[ $response == *"\"ok\":true"* ]]; then
+        echo "✓ Message sent"
+    else
+        echo "✗ Error sending message:"
+        echo "$response" | sed 's/^/  /'  # Indent error message
+    fi
+fi
