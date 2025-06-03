@@ -1,4 +1,4 @@
-set number
+set relativenumber
 
 set tabstop=2                                   " a tab is how many spaces
 set softtabstop=2
