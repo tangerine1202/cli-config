@@ -8,5 +8,5 @@ sync -av  .tmux.conf $HOME
 tmux source-file ~/.tmux.conf
 
 # neovim
-rsync -avr nvim $HOME/.config/nvim
+rsync -avr nvim $HOME/.config
 
