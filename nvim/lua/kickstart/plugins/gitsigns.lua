@@ -24,7 +24,7 @@ return {
           end
         end, { desc = 'Jump to next git [h]unk' })
 
-        map('n', '[k', function()
+        map('n', '[h', function()
           if vim.wo.diff then
             vim.cmd.normal { '[h', bang = true }
           else
