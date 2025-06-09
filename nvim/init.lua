@@ -659,7 +659,7 @@ require('lazy').setup({
       vim.diagnostic.config {
         severity_sort = true,
         float = { border = 'rounded', source = 'if_many' },
-        underline = { severity = vim.diagnostic.severity.ERROR },
+        underline = { severity = vim.diagnostic.severity.INFO },
         signs = vim.g.have_nerd_font and {
           text = {
             [vim.diagnostic.severity.ERROR] = '󰅚 ',
@@ -675,7 +675,7 @@ require('lazy').setup({
             local diagnostic_message = {
               [vim.diagnostic.severity.ERROR] = diagnostic.message,
               [vim.diagnostic.severity.WARN] = diagnostic.message,
-              [vim.diagnostic.severity.INFO] = diagnostic.message,
+              [vim.diagnostic.severity.INFO] = nil, -- diagnostic.message, -- hide spellcheck messages
               [vim.diagnostic.severity.HINT] = diagnostic.message,
             }
             return diagnostic_message[diagnostic.severity]
@@ -701,7 +701,14 @@ require('lazy').setup({
       local servers = {
         -- clangd = {},
         -- gopls = {},
-        pyright = {},
+        -- pyright = {},
+        -- ruff = {
+        --   init_options = {
+        --     settings = {
+        --       logLevel = 'debug',
+        --     },
+        --   },
+        -- },
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -711,6 +718,14 @@ require('lazy').setup({
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
         --
+        cspell = {
+          cmd = { 'cspell-lsp', '--stdio' },
+          filetypes = { 'markdown', 'text', 'gitcommit', 'lua', 'python', 'c', 'cpp' },
+          root_dir = function(fname)
+            return require('lspconfig.util').root_pattern('.git', 'cspell.json', 'package.json')(fname)
+          end,
+          single_file_support = true,
+        },
 
         lua_ls = {
           -- cmd = { ... },
@@ -727,6 +742,8 @@ require('lazy').setup({
           },
         },
       }
+      -- Enable cspell
+      vim.lsp.enable 'cspell_ls'
 
       -- Ensure the servers and tools above are installed
       --
@@ -798,7 +815,15 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
-        python = { 'isort', 'pyright', 'ruff' },
+        -- -- python = { 'isort', 'pyright' },
+        -- python = {
+        --   -- To fix auto-fixable lint errors.
+        --   'ruff_fix',
+        --   -- To run the Ruff formatter.
+        --   'ruff_format',
+        --   -- To organize the imports.
+        --   'ruff_organize_imports',
+        -- },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
@@ -949,11 +974,12 @@ require('lazy').setup({
         return MiniStatusline.combine_groups {
           { hl = mode_hl, strings = { mode } },
           { hl = 'MiniStatuslineDevinfo', strings = { git, diagnostics } },
+          { hl = 'MiniStatuslineDevinfo', strings = { lsp } },
           '%<', -- Mark general truncate point
           { hl = 'MiniStatuslineFilename', strings = { filename } },
           '%=', -- End left alignment
           { hl = 'MiniStatuslineFileinfo', strings = { fileinfo } },
-          { hl = 'MiniStatuslineDevinfo', strings = { lsp, diff } },
+          { hl = 'MiniStatuslineDevinfo', strings = { diff } },
           { hl = mode_hl, strings = { search, location } },
         }
       end
@@ -981,7 +1007,7 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'regex' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
