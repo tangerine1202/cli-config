@@ -708,12 +708,13 @@ require('lazy').setup({
         -- clangd = {},
         -- gopls = {},
         -- pyright = {},
-        -- ruff = {
-        --   init_options = {
-        --     settings = {
-        --       logLevel = 'debug',
-        --     },
-        --   },
+        ruff = {
+          init_options = {
+            settings = {
+              logLevel = 'debug',
+            },
+          },
+        },
         -- },
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
@@ -723,15 +724,6 @@ require('lazy').setup({
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
-        --
-        cspell = {
-          cmd = { 'cspell-lsp', '--stdio' },
-          filetypes = { 'markdown', 'text', 'gitcommit', 'lua', 'python', 'c', 'cpp' },
-          root_dir = function(fname)
-            return require('lspconfig.util').root_pattern('.git', 'cspell.json', 'package.json')(fname)
-          end,
-          single_file_support = true,
-        },
 
         lua_ls = {
           -- cmd = { ... },
@@ -746,6 +738,15 @@ require('lazy').setup({
               -- diagnostics = { disable = { 'missing-fields' } },
             },
           },
+        },
+
+        cspell = {
+          cmd = { 'cspell-lsp', '--stdio' },
+          filetypes = { 'markdown', 'text', 'gitcommit', 'lua', 'python', 'c', 'cpp' },
+          root_dir = function(fname)
+            return require('lspconfig.util').root_pattern('.git', 'cspell.json', 'package.json')(fname)
+          end,
+          single_file_support = true,
         },
       }
       -- Enable cspell
@@ -822,17 +823,17 @@ require('lazy').setup({
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
         -- -- python = { 'isort', 'pyright' },
-        -- python = {
-        --   -- To fix auto-fixable lint errors.
-        --   'ruff_fix',
-        --   -- To run the Ruff formatter.
-        --   'ruff_format',
-        --   -- To organize the imports.
-        --   'ruff_organize_imports',
-        -- },
+        python = {
+          -- To fix auto-fixable lint errors.
+          'ruff_fix',
+          -- To run the Ruff formatter.
+          'ruff_format',
+          -- To organize the imports.
+          'ruff_organize_imports',
+        },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
-        -- javascript = { "prettierd", "prettier", stop_after_first = true },
+        -- javascript = { 'prettierd', 'prettier', stop_after_first = true },
       },
     },
   },
