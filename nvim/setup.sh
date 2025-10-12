@@ -14,9 +14,58 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NVIM_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
 NVIM_INSTALLED_BY_SCRIPT=false
 
+# Function to check GLIBC version
+check_glibc_version() {
+    # Get GLIBC version
+    if command -v ldd &> /dev/null; then
+        GLIBC_VERSION=$(ldd --version 2>/dev/null | head -n 1 | grep -oP '\d+\.\d+' | head -n 1)
+    else
+        # Fallback: try to get version from libc.so.6
+        if [ -f /lib/x86_64-linux-gnu/libc.so.6 ]; then
+            GLIBC_VERSION=$(/lib/x86_64-linux-gnu/libc.so.6 2>&1 | grep -oP 'release version \K\d+\.\d+' | head -n 1)
+        elif [ -f /lib64/libc.so.6 ]; then
+            GLIBC_VERSION=$(/lib64/libc.so.6 2>&1 | grep -oP 'release version \K\d+\.\d+' | head -n 1)
+        fi
+    fi
+
+    # Check if GLIBC is too old for AppImage (requires 2.31+)
+    if [ -n "$GLIBC_VERSION" ]; then
+        GLIBC_MAJOR=$(echo "$GLIBC_VERSION" | cut -d. -f1)
+        GLIBC_MINOR=$(echo "$GLIBC_VERSION" | cut -d. -f2)
+
+        if [ "$GLIBC_MAJOR" -lt 2 ] || ([ "$GLIBC_MAJOR" -eq 2 ] && [ "$GLIBC_MINOR" -lt 31 ]); then
+            return 1  # GLIBC too old
+        fi
+    fi
+    return 0  # GLIBC is new enough or unknown
+}
+
 # Function to install Neovim via AppImage
 install_neovim_appimage() {
     echo -e "\n${BLUE}=== Installing Neovim via AppImage ===${NC}\n"
+
+    # Check GLIBC version first
+    if ! check_glibc_version; then
+        echo -e "${YELLOW}Warning: Your system has GLIBC ${GLIBC_VERSION}${NC}"
+        echo "The Neovim AppImage requires GLIBC 2.31 or newer."
+        echo ""
+        echo -e "${BLUE}Alternative installation options:${NC}"
+        echo "  1. Use tarball from neovim-releases (for old GLIBC):"
+        echo "     https://github.com/neovim/neovim-releases/releases"
+        echo ""
+        echo "  2. Build from source:"
+        echo "     git clone https://github.com/neovim/neovim.git"
+        echo "     cd neovim && make CMAKE_BUILD_TYPE=RelWithDebInfo"
+        echo ""
+        echo "  3. Use system package manager (may have older version):"
+        echo "     sudo apt install neovim"
+        echo ""
+        read -p "Try AppImage anyway? It may not work. (y/n) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 0
+        fi
+    fi
 
     # Check for download tools
     if ! command -v curl &> /dev/null && ! command -v wget &> /dev/null; then
