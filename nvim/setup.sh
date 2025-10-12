@@ -40,22 +40,32 @@ check_glibc_version() {
     return 0  # GLIBC is new enough or unknown
 }
 
-# Function to download AppImage from URL
-download_appimage() {
-    local url=$1
-    local path=$2
-
-    if command -v curl &> /dev/null; then
-        curl -L -o "$path" "$url" || return 1
-    else
-        wget -O "$path" "$url" || return 1
-    fi
-    return 0
-}
-
 # Function to install Neovim via AppImage
 install_neovim_appimage() {
     echo -e "\n${BLUE}=== Installing Neovim via AppImage ===${NC}\n"
+
+    # Check GLIBC version first
+    if ! check_glibc_version; then
+        echo -e "${YELLOW}Warning: Your system has GLIBC ${GLIBC_VERSION}${NC}"
+        echo "The Neovim AppImage requires GLIBC 2.31 or newer."
+        echo ""
+        echo -e "${BLUE}Alternative installation options:${NC}"
+        echo "  1. Use tarball from neovim-releases (for old GLIBC):"
+        echo "     https://github.com/neovim/neovim-releases/releases"
+        echo ""
+        echo "  2. Build from source:"
+        echo "     git clone https://github.com/neovim/neovim.git"
+        echo "     cd neovim && make CMAKE_BUILD_TYPE=RelWithDebInfo"
+        echo ""
+        echo "  3. Use system package manager (may have older version):"
+        echo "     sudo apt install neovim"
+        echo ""
+        read -p "Try AppImage anyway? It may not work. (y/n) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 0
+        fi
+    fi
 
     # Check for download tools
     if ! command -v curl &> /dev/null && ! command -v wget &> /dev/null; then
@@ -69,31 +79,20 @@ install_neovim_appimage() {
 
     NVIM_PATH="$HOME/.local/bin/nvim"
     APPIMAGE_URL="https://github.com/neovim/neovim/releases/latest/download/nvim.appimage"
-    FALLBACK_URL="https://github.com/neovim/neovim/releases/download/v0.10.4/nvim-linux-x86_64.appimage"
 
-    # Check GLIBC version first
-    USE_FALLBACK=false
-    if ! check_glibc_version; then
-        echo -e "${YELLOW}Warning: Your system has GLIBC ${GLIBC_VERSION}${NC}"
-        echo "The latest Neovim AppImage requires GLIBC 2.31 or newer."
-        echo "Will try older version (v0.10.4) that may work with your system..."
-        echo ""
-        USE_FALLBACK=true
-    fi
-
-    # Determine which URL to use
-    if [ "$USE_FALLBACK" = true ]; then
-        DOWNLOAD_URL="$FALLBACK_URL"
-        echo "Downloading Neovim v0.10.4 AppImage (compatible with older GLIBC)..."
-    else
-        DOWNLOAD_URL="$APPIMAGE_URL"
-        echo "Downloading latest Neovim AppImage..."
-    fi
+    echo "Downloading Neovim AppImage..."
 
     # Download AppImage
-    if ! download_appimage "$DOWNLOAD_URL" "$NVIM_PATH"; then
-        echo -e "${RED}Failed to download Neovim AppImage${NC}"
-        exit 1
+    if command -v curl &> /dev/null; then
+        curl -L -o "$NVIM_PATH" "$APPIMAGE_URL" || {
+            echo -e "${RED}Failed to download Neovim AppImage${NC}"
+            exit 1
+        }
+    else
+        wget -O "$NVIM_PATH" "$APPIMAGE_URL" || {
+            echo -e "${RED}Failed to download Neovim AppImage${NC}"
+            exit 1
+        }
     fi
 
     # Validate the download is actually a binary (not HTML error page)
@@ -122,12 +121,9 @@ install_neovim_appimage() {
         echo -e "${GREEN}✓ Neovim AppImage downloaded successfully${NC}"
 
         # Test if nvim works
-        NVIM_TEST_OUTPUT=$("$NVIM_PATH" --version 2>&1)
-        NVIM_TEST_EXIT=$?
-
-        if [ $NVIM_TEST_EXIT -eq 0 ]; then
+        if "$NVIM_PATH" --version &> /dev/null; then
             NVIM_INSTALLED_BY_SCRIPT=true
-            NVIM_VERSION=$(echo "$NVIM_TEST_OUTPUT" | head -n 1)
+            NVIM_VERSION=$("$NVIM_PATH" --version | head -n 1)
             echo -e "${GREEN}✓ Neovim is working: ${NVIM_VERSION}${NC}"
             echo ""
 
@@ -141,59 +137,12 @@ install_neovim_appimage() {
                 echo ""
             fi
         else
-            # Check if failure is due to GLIBC
-            if echo "$NVIM_TEST_OUTPUT" | grep -q "GLIBC"; then
-                if [ "$USE_FALLBACK" = false ]; then
-                    echo -e "${YELLOW}Latest version failed due to GLIBC incompatibility${NC}"
-                    echo "Trying fallback version (v0.10.4)..."
-                    echo ""
-
-                    # Remove failed download and try fallback
-                    rm -f "$NVIM_PATH"
-
-                    if ! download_appimage "$FALLBACK_URL" "$NVIM_PATH"; then
-                        echo -e "${RED}Failed to download fallback AppImage${NC}"
-                        exit 1
-                    fi
-
-                    chmod u+x "$NVIM_PATH"
-
-                    # Validate fallback download
-                    FILE_TYPE=$(file -b "$NVIM_PATH" 2>/dev/null || echo "unknown")
-                    if [[ ! "$FILE_TYPE" =~ (ELF|executable|AppImage) ]]; then
-                        echo -e "${RED}Error: Downloaded fallback file is not a valid AppImage${NC}"
-                        rm -f "$NVIM_PATH"
-                        exit 1
-                    fi
-
-                    # Test fallback version
-                    if "$NVIM_PATH" --version &> /dev/null; then
-                        NVIM_INSTALLED_BY_SCRIPT=true
-                        NVIM_VERSION=$("$NVIM_PATH" --version | head -n 1)
-                        echo -e "${GREEN}✓ Fallback version is working: ${NVIM_VERSION}${NC}"
-                        echo ""
-                    else
-                        echo -e "${RED}Fallback version also failed${NC}"
-                        echo "Your system may be too old for AppImage versions."
-                        echo "Please try building from source or use system package manager."
-                        rm -f "$NVIM_PATH"
-                        exit 1
-                    fi
-                else
-                    echo -e "${RED}AppImage failed even with fallback version${NC}"
-                    echo "Your system may be too old for AppImage versions."
-                    echo "Please try building from source or use system package manager."
-                    rm -f "$NVIM_PATH"
-                    exit 1
-                fi
-            else
-                echo -e "${YELLOW}Warning: Neovim was installed but may require FUSE to run${NC}"
-                echo "If it doesn't work, extract the AppImage:"
-                echo "  $NVIM_PATH --appimage-extract"
-                echo "  mv squashfs-root ~/.local/nvim"
-                echo "  ln -sf ~/.local/nvim/AppRun ~/.local/bin/nvim"
-                echo ""
-            fi
+            echo -e "${YELLOW}Warning: Neovim was installed but may require FUSE to run${NC}"
+            echo "If it doesn't work, extract the AppImage:"
+            echo "  $NVIM_PATH --appimage-extract"
+            echo "  mv squashfs-root ~/.local/nvim"
+            echo "  ln -sf ~/.local/nvim/AppRun ~/.local/bin/nvim"
+            echo ""
         fi
     else
         echo -e "${RED}Failed to install Neovim AppImage${NC}"
