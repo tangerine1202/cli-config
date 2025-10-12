@@ -46,32 +46,54 @@ install_neovim_appimage() {
         }
     fi
 
+    # Validate the download is actually a binary (not HTML error page)
+    FILE_TYPE=$(file -b "$NVIM_PATH" 2>/dev/null || echo "unknown")
+    if [[ ! "$FILE_TYPE" =~ (ELF|executable|AppImage) ]]; then
+        echo -e "${RED}Error: Downloaded file is not a valid AppImage${NC}"
+        echo "File type detected: $FILE_TYPE"
+        echo ""
+        echo "This usually means:"
+        echo "  1. GitHub releases URL has changed"
+        echo "  2. Network/proxy issues"
+        echo "  3. Download was interrupted"
+        echo ""
+        echo "Cleaning up invalid download..."
+        rm -f "$NVIM_PATH"
+        echo "Please try again or install manually from:"
+        echo "  https://github.com/neovim/neovim/releases"
+        exit 1
+    fi
+
     # Make executable
     chmod u+x "$NVIM_PATH"
 
     # Verify installation
     if [ -x "$NVIM_PATH" ]; then
-        echo -e "${GREEN}✓ Neovim AppImage installed successfully${NC}"
-
-        # Check if ~/.local/bin is in PATH
-        if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-            echo -e "\n${YELLOW}Note: ~/.local/bin is not in your PATH${NC}"
-            echo "Add the following line to your ~/.bashrc or ~/.zshrc:"
-            echo -e "${BLUE}export PATH=\"\$HOME/.local/bin:\$PATH\"${NC}"
-            echo ""
-            echo "Then reload your shell with: source ~/.bashrc (or ~/.zshrc)"
-        fi
+        echo -e "${GREEN}✓ Neovim AppImage downloaded successfully${NC}"
 
         # Test if nvim works
         if "$NVIM_PATH" --version &> /dev/null; then
             NVIM_INSTALLED_BY_SCRIPT=true
+            NVIM_VERSION=$("$NVIM_PATH" --version | head -n 1)
+            echo -e "${GREEN}✓ Neovim is working: ${NVIM_VERSION}${NC}"
             echo ""
+
+            # Check if ~/.local/bin is in PATH
+            if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+                echo -e "${YELLOW}Note: ~/.local/bin is not in your PATH${NC}"
+                echo "Add the following line to your ~/.bashrc or ~/.zshrc:"
+                echo -e "${BLUE}export PATH=\"\$HOME/.local/bin:\$PATH\"${NC}"
+                echo ""
+                echo "Then reload your shell with: source ~/.bashrc (or ~/.zshrc)"
+                echo ""
+            fi
         else
             echo -e "${YELLOW}Warning: Neovim was installed but may require FUSE to run${NC}"
             echo "If it doesn't work, extract the AppImage:"
             echo "  $NVIM_PATH --appimage-extract"
             echo "  mv squashfs-root ~/.local/nvim"
             echo "  ln -sf ~/.local/nvim/AppRun ~/.local/bin/nvim"
+            echo ""
         fi
     else
         echo -e "${RED}Failed to install Neovim AppImage${NC}"
@@ -81,22 +103,52 @@ install_neovim_appimage() {
 
 echo -e "${BLUE}=== Neovim Configuration Setup ===${NC}\n"
 
-# Check if nvim is installed
-if ! command -v nvim &> /dev/null; then
-    echo -e "${YELLOW}Neovim is not installed${NC}"
-    read -p "Would you like to install Neovim via AppImage? (y/n) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        install_neovim_appimage
-    else
-        echo -e "${BLUE}You can install Neovim manually from:${NC}"
-        echo "  https://github.com/neovim/neovim/wiki/Installing-Neovim"
-        exit 0
+# Check if nvim is installed and working
+NVIM_WORKING=false
+if command -v nvim &> /dev/null; then
+    # Check if nvim actually works
+    if NVIM_VERSION=$(nvim --version 2>/dev/null | head -n 1); then
+        if [ -n "$NVIM_VERSION" ]; then
+            NVIM_WORKING=true
+            echo -e "${GREEN}Found: ${NVIM_VERSION}${NC}\n"
+        fi
     fi
 fi
 
-NVIM_VERSION=$(nvim --version | head -n 1)
-echo -e "${GREEN}Found: ${NVIM_VERSION}${NC}\n"
+if [ "$NVIM_WORKING" = false ]; then
+    if command -v nvim &> /dev/null; then
+        # nvim exists but is corrupted
+        echo -e "${YELLOW}Neovim is installed but appears to be corrupted${NC}"
+        NVIM_PATH=$(command -v nvim)
+        echo "Location: $NVIM_PATH"
+        read -p "Would you like to reinstall Neovim via AppImage? (y/n) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            # Remove corrupted installation if it's in ~/.local/bin
+            if [[ "$NVIM_PATH" == "$HOME/.local/bin/nvim" ]]; then
+                echo "Removing corrupted installation..."
+                rm -f "$NVIM_PATH"
+            fi
+            install_neovim_appimage
+        else
+            echo -e "${RED}Cannot proceed with corrupted Neovim installation${NC}"
+            echo "Please fix or remove: $NVIM_PATH"
+            exit 1
+        fi
+    else
+        # nvim doesn't exist
+        echo -e "${YELLOW}Neovim is not installed${NC}"
+        read -p "Would you like to install Neovim via AppImage? (y/n) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            install_neovim_appimage
+        else
+            echo -e "${BLUE}You can install Neovim manually from:${NC}"
+            echo "  https://github.com/neovim/neovim/wiki/Installing-Neovim"
+            exit 0
+        fi
+    fi
+fi
 
 # Check dependencies (non-blocking)
 echo -e "${BLUE}Checking dependencies...${NC}"
