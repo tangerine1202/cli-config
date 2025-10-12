@@ -100,10 +100,10 @@ vim.g.have_nerd_font = true
 
 -- Make line numbers default
 vim.o.number = true
-vim.o.relativenumber = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
--- vim.o.relativenumber = true
+vim.o.number = true
+vim.o.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.o.mouse = 'a'
@@ -524,7 +524,7 @@ require('lazy').setup({
       { 'j-hui/fidget.nvim', opts = {} },
 
       -- Allows extra capabilities provided by blink.cmp
-      'saghen/blink.cmp',
+      -- 'saghen/blink.cmp',
     },
     config = function()
       -- Brief aside: **What is LSP?**
@@ -707,7 +707,20 @@ require('lazy').setup({
       local servers = {
         -- clangd = {},
         -- gopls = {},
-        -- pyright = {},
+        pyright = {
+          settings = {
+            pyright = {
+              -- Using ruff's import organizer
+              disableOrganizeImports = true,
+            },
+            python = {
+              analysis = {
+                -- Ignore all files for analysis to exclusively use ruff for linting
+                ignore = { '*' },
+              },
+            },
+          },
+        },
         ruff = {
           init_options = {
             settings = {
@@ -723,7 +736,29 @@ require('lazy').setup({
         --    https://github.com/pmizio/typescript-tools.nvim
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
+        -- -- TypeScript/JavaScript LSP for JSX support
+        ts_ls = {
+          filetypes = {
+            'javascript',
+            'javascriptreact',
+            'typescript',
+            'typescriptreact',
+            'jsx',
+            'tsx',
+          },
+          settings = {
+            typescript = {
+              preferences = {
+                includePackageJsonAutoImports = 'auto',
+              },
+            },
+            javascript = {
+              preferences = {
+                includePackageJsonAutoImports = 'auto',
+              },
+            },
+          },
+        },
 
         lua_ls = {
           -- cmd = { ... },
@@ -742,7 +777,7 @@ require('lazy').setup({
 
         cspell = {
           cmd = { 'cspell-lsp', '--stdio' },
-          filetypes = { 'markdown', 'text', 'gitcommit', 'lua', 'python', 'c', 'cpp' },
+          filetypes = { 'markdown', 'text', 'gitcommit', 'lua', 'python', 'c', 'cpp', 'javascript', 'typescript', 'javascriptreact', 'typescriptreact' },
           root_dir = function(fname)
             return require('lspconfig.util').root_pattern('.git', 'cspell.json', 'package.json')(fname)
           end,
@@ -768,6 +803,8 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
+        'prettierd', -- Faster prettier daemon
+        'eslint_d', -- Optional: ESLint for linting
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -833,7 +870,14 @@ require('lazy').setup({
         },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
-        -- javascript = { 'prettierd', 'prettier', stop_after_first = true },
+        javascript = { 'prettierd', 'prettier', stop_after_first = true },
+        javascriptreact = { 'prettierd', 'prettier', stop_after_first = true },
+        typescript = { 'prettierd', 'prettier', stop_after_first = true },
+        typescriptreact = { 'prettierd', 'prettier', stop_after_first = true },
+        jsx = { 'prettierd', 'prettier', stop_after_first = true },
+        tsx = { 'prettierd', 'prettier', stop_after_first = true },
+        css = { 'prettierd', 'prettier', stop_after_first = true },
+        json = { 'prettierd', 'prettier', stop_after_first = true },
       },
     },
   },
@@ -1014,7 +1058,23 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'regex' },
+      ensure_installed = {
+        'bash',
+        'c',
+        'diff',
+        'html',
+        'lua',
+        'luadoc',
+        -- 'markdown',
+        -- 'markdown_inline',
+        'query',
+        'vim',
+        'vimdoc',
+        'regex',
+        'python',
+        'javascript',
+        'typescript',
+      },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
