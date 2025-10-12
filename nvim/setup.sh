@@ -12,14 +12,87 @@ NC='\033[0m' # No Color
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NVIM_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
+NVIM_INSTALLED_BY_SCRIPT=false
+
+# Function to install Neovim via AppImage
+install_neovim_appimage() {
+    echo -e "\n${BLUE}=== Installing Neovim via AppImage ===${NC}\n"
+
+    # Check for download tools
+    if ! command -v curl &> /dev/null && ! command -v wget &> /dev/null; then
+        echo -e "${RED}Error: Neither curl nor wget is available${NC}"
+        echo "Please install curl or wget first"
+        exit 1
+    fi
+
+    # Create ~/.local/bin if it doesn't exist
+    mkdir -p "$HOME/.local/bin"
+
+    NVIM_PATH="$HOME/.local/bin/nvim"
+    APPIMAGE_URL="https://github.com/neovim/neovim/releases/latest/download/nvim.appimage"
+
+    echo "Downloading Neovim AppImage..."
+
+    # Download AppImage
+    if command -v curl &> /dev/null; then
+        curl -L -o "$NVIM_PATH" "$APPIMAGE_URL" || {
+            echo -e "${RED}Failed to download Neovim AppImage${NC}"
+            exit 1
+        }
+    else
+        wget -O "$NVIM_PATH" "$APPIMAGE_URL" || {
+            echo -e "${RED}Failed to download Neovim AppImage${NC}"
+            exit 1
+        }
+    fi
+
+    # Make executable
+    chmod u+x "$NVIM_PATH"
+
+    # Verify installation
+    if [ -x "$NVIM_PATH" ]; then
+        echo -e "${GREEN}✓ Neovim AppImage installed successfully${NC}"
+
+        # Check if ~/.local/bin is in PATH
+        if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+            echo -e "\n${YELLOW}Note: ~/.local/bin is not in your PATH${NC}"
+            echo "Add the following line to your ~/.bashrc or ~/.zshrc:"
+            echo -e "${BLUE}export PATH=\"\$HOME/.local/bin:\$PATH\"${NC}"
+            echo ""
+            echo "Then reload your shell with: source ~/.bashrc (or ~/.zshrc)"
+        fi
+
+        # Test if nvim works
+        if "$NVIM_PATH" --version &> /dev/null; then
+            NVIM_INSTALLED_BY_SCRIPT=true
+            echo ""
+        else
+            echo -e "${YELLOW}Warning: Neovim was installed but may require FUSE to run${NC}"
+            echo "If it doesn't work, extract the AppImage:"
+            echo "  $NVIM_PATH --appimage-extract"
+            echo "  mv squashfs-root ~/.local/nvim"
+            echo "  ln -sf ~/.local/nvim/AppRun ~/.local/bin/nvim"
+        fi
+    else
+        echo -e "${RED}Failed to install Neovim AppImage${NC}"
+        exit 1
+    fi
+}
 
 echo -e "${BLUE}=== Neovim Configuration Setup ===${NC}\n"
 
 # Check if nvim is installed
 if ! command -v nvim &> /dev/null; then
-    echo -e "${RED}Error: Neovim is not installed${NC}"
-    echo "Please install Neovim first: https://github.com/neovim/neovim/wiki/Installing-Neovim"
-    exit 1
+    echo -e "${YELLOW}Neovim is not installed${NC}"
+    read -p "Would you like to install Neovim via AppImage? (y/n) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        install_neovim_appimage
+    else
+        echo -e "${BLUE}You can install Neovim manually from:${NC}"
+        echo "  https://github.com/neovim/neovim/wiki/Installing-Neovim"
+        exit 0
+    fi
 fi
 
 NVIM_VERSION=$(nvim --version | head -n 1)
@@ -123,6 +196,21 @@ fi
 
 echo ""
 echo -e "${GREEN}=== Setup Complete! ===${NC}\n"
+
+if [ "$NVIM_INSTALLED_BY_SCRIPT" = true ]; then
+    echo -e "${YELLOW}Important: Neovim was installed to ~/.local/bin/nvim${NC}"
+    if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+        echo "You need to add ~/.local/bin to your PATH:"
+        echo -e "  ${BLUE}echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc${NC}"
+        echo "  source ~/.bashrc"
+        echo ""
+        echo "Or for zsh:"
+        echo -e "  ${BLUE}echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.zshrc${NC}"
+        echo "  source ~/.zshrc"
+        echo ""
+    fi
+fi
+
 echo "Next steps:"
 echo "  1. Start Neovim: nvim"
 echo "  2. Lazy will automatically install plugins"
