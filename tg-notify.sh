@@ -84,15 +84,40 @@ if [ $# -ge 2 ]; then
     echo "[tg-notify] Label: $LABEL"
     echo ""
 
+    # Record start time
+    START_TIME=$(date +%s)
+
     # Run the command
     "$@"
     EXIT_CODE=$?
 
+    # Calculate duration
+    END_TIME=$(date +%s)
+    DURATION=$((END_TIME - START_TIME))
+
+    # Format duration (only show non-zero units)
+    DAYS=$((DURATION / 86400))
+    HOURS=$(((DURATION % 86400) / 3600))
+    MINUTES=$(((DURATION % 3600) / 60))
+    SECONDS=$((DURATION % 60))
+
+    DURATION_STR=""
+    [ $DAYS -gt 0 ] && DURATION_STR="${DAYS}d "
+    [ $HOURS -gt 0 ] && DURATION_STR="${DURATION_STR}${HOURS}h "
+    [ $MINUTES -gt 0 ] && DURATION_STR="${DURATION_STR}${MINUTES}m "
+    [ $SECONDS -gt 0 ] || [ -z "$DURATION_STR" ] && DURATION_STR="${DURATION_STR}${SECONDS}s"
+    DURATION_STR=$(echo "$DURATION_STR" | sed 's/ $//')  # Trim trailing space
+
+    # echo ""
+    # echo "[tg-notify] Duration: $DURATION_STR"
+
     # Send notification based on exit code
     if [ $EXIT_CODE -eq 0 ]; then
-        send_notification "✅ Success: $LABEL"
+        send_notification "✅ Success: $LABEL
+🕒 Runtime: $DURATION_STR"
     else
-        send_notification "❗ Failed (Exit Code: $EXIT_CODE): $LABEL"
+        send_notification "❗ Failed (Exit Code: $EXIT_CODE): $LABEL
+🕒 Runtime: $DURATION_STR"
     fi
 
     exit $EXIT_CODE
