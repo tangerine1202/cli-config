@@ -90,9 +90,9 @@ if [ $# -ge 2 ]; then
 
     # Send notification based on exit code
     if [ $EXIT_CODE -eq 0 ]; then
-        send_notification "✓ Success: $LABEL"
+        send_notification "✅ Success: $LABEL"
     else
-        send_notification "✗ Failed (Exit Code: $EXIT_CODE): $LABEL"
+        send_notification "❗ Failed (Exit Code: $EXIT_CODE): $LABEL"
     fi
 
     exit $EXIT_CODE
