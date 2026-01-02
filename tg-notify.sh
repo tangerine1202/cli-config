@@ -38,16 +38,16 @@ if [ -f "$ENV_FILE" ]; then
 elif [ -f "$CONF_FILE" ]; then
     source "$CONF_FILE"
 else
-    echo "Error: Configuration file not found"
-    echo "Please create ~/.tg-notify.env with:"
-    echo "TELEGRAM_BOT_TOKEN=your_bot_token_here"
-    echo "TELEGRAM_CHAT_ID=your_chat_id_here"
+    echo "[tg-notify] Error: Configuration file not found"
+    echo "[tg-notify] Please create ~/.tg-notify.env with:"
+    echo "[tg-notify]   TELEGRAM_BOT_TOKEN=your_bot_token_here"
+    echo "[tg-notify]   TELEGRAM_CHAT_ID=your_chat_id_here"
     exit 1
 fi
 
 # Check if variables are set
 if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
-    echo "Error: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set in config file"
+    echo "[tg-notify] Error: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set in config file"
     exit 1
 fi
 
@@ -65,11 +65,11 @@ ${message}"
         -d parse_mode="HTML")
 
     if echo "$response" | grep -q '"ok":true'; then
-        echo "Notification sent successfully"
+        echo "[tg-notify] Notification sent successfully"
         return 0
     else
-        echo "Failed to send notification"
-        echo "Response: $response"
+        echo "[tg-notify] Failed to send notification"
+        echo "[tg-notify] Response: $response"
         return 1
     fi
 }
@@ -80,8 +80,8 @@ if [ $# -ge 2 ]; then
     LABEL="$1"
     shift
 
-    echo "Running: $@"
-    echo "Label: $LABEL"
+    echo "[tg-notify] Running: $@"
+    echo "[tg-notify] Label: $LABEL"
     echo ""
 
     # Run the command
