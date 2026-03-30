@@ -18,7 +18,7 @@ Trigger this skill when users ask to:
 - Make code more maintainable
 - Clean up or modernize code
 
-**Best Practice**: Run the `code-analysis` skill first to create `implementation_plan.md`, then use this skill to implement the recommendations.
+**Best Practice**: Run the `analyze-code` skill first to create `implementation_plan.md`, then use this skill to implement the recommendations.
 
 ## Refactoring Methodology
 
@@ -27,7 +27,7 @@ Trigger this skill when users ask to:
 **Look for existing analysis:**
 - Check for `implementation_plan.md` in the current directory
 - If it exists, read it to understand the proposed changes
-- If it doesn't exist, ask the user if they want to run `code-analysis` first
+- If it doesn't exist, ask the user if they want to run `analyze-code` first
 - Identify the priority order: Critical → Moderate → Minor issues
 
 **If no plan exists:**
