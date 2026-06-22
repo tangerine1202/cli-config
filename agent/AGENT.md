@@ -5,7 +5,7 @@ description: Global development rules.
 
 ## Skills
 
-- Always load the `using-skills` at the beginning of any conversation
+- If the task involve multiple steps, then load the `karpathy-guidelines` at the beginning of any conversation
 
 ## Python
 
