@@ -606,6 +606,14 @@ require('lazy').setup({
           --  the definition of its *type*, not where it was *defined*.
           map('grt', require('telescope.builtin').lsp_type_definitions, '[G]oto [T]ype Definition')
 
+          -- Show diagnostic under cursor in floating window
+          --  Useful for viewing cspell spelling suggestions and other diagnostics
+          map('gl', function()
+            vim.diagnostic.open_float(nil, {
+              scope = 'cursor', -- Only show diagnostic under cursor
+            })
+          end, 'Show [L]ine diagnostic')
+
           -- This function resolves a difference between neovim nightly (version 0.11) and stable (version 0.10)
           ---@param client vim.lsp.Client
           ---@param method vim.lsp.protocol.Method
@@ -678,11 +686,23 @@ require('lazy').setup({
           source = 'if_many',
           spacing = 2,
           format = function(diagnostic)
+            -- Filter out noisy lua_ls type warnings
+            local noisy_codes = {
+              ['param-type-mismatch'] = true,
+              ['missing-fields'] = true,
+              ['assign-type-mismatch'] = true,
+              ['cast-local-type'] = true,
+            }
+
+            if noisy_codes[diagnostic.code] then
+              return nil
+            end
+
             local diagnostic_message = {
               [vim.diagnostic.severity.ERROR] = diagnostic.message,
               [vim.diagnostic.severity.WARN] = diagnostic.message,
               [vim.diagnostic.severity.INFO] = nil, -- diagnostic.message, -- hide spellcheck messages
-              [vim.diagnostic.severity.HINT] = diagnostic.message,
+              [vim.diagnostic.severity.HINT] = nil, -- hide hints to reduce clutter
             }
             return diagnostic_message[diagnostic.severity]
           end,
@@ -769,8 +789,43 @@ require('lazy').setup({
               completion = {
                 callSnippet = 'Replace',
               },
-              -- You can toggle below to ignore Lua_LS's noisy `missing-fields` warnings
-              -- diagnostics = { disable = { 'missing-fields' } },
+              -- Disable noisy warnings from lua_ls
+              diagnostics = {
+                disable = {
+                  'missing-fields',
+                  'assign-type-mismatch',
+                  'param-type-mismatch',
+                  'cast-local-type',
+                  'redundant-parameter',
+                  'inject-field',
+                },
+                -- Reduce severity of remaining type warnings
+                severity = {
+                  ['param-type-mismatch'] = 'Hint',
+                  ['missing-fields'] = 'Hint',
+                },
+                -- Also set globals to avoid undefined warnings
+                globals = { 'vim' },
+              },
+              -- Adjust workspace library to include Neovim runtime
+              workspace = {
+                checkThirdParty = false,
+              },
+              -- Reduce type strictness
+              type = {
+                castNumberToInteger = true,
+                weakUnionCheck = true,
+                weakNilCheck = true,
+              },
+              -- Improve type checking behavior
+              hint = {
+                enable = true,
+                setType = false,
+                paramType = true,
+                paramName = 'Disable',
+                semicolon = 'Disable',
+                arrayIndex = 'Disable',
+              },
             },
           },
         },
@@ -805,6 +860,7 @@ require('lazy').setup({
         'stylua', -- Used to format Lua code
         'prettierd', -- Faster prettier daemon
         'eslint_d', -- Optional: ESLint for linting
+        'markdownlint', -- Markdown linting
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 

@@ -1,6 +1,7 @@
 -- https://github.com/zbirenbaum/copilot.lua?tab=readme-ov-file
 return {
   'zbirenbaum/copilot.lua',
+  enabled = false,
   cmd = 'Copilot',
   event = 'InsertEnter',
   config = function()
