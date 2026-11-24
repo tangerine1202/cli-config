@@ -226,6 +226,7 @@ Every Gemini prompt must include these sections in order:
 #!/usr/bin/env python3
 """Generate [FIGURE_NAME] diagram using Gemini image generation."""
 import os, sys, time
+from pathlib import Path
 from google import genai
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -235,7 +236,7 @@ if not API_KEY:
     sys.exit(1)
 
 MODEL = "gemini-3-pro-image-preview"
-OUTPUT_DIR = os.path.dirname(os.path.abspath(__file__))
+OUTPUT_DIR = Path(__file__).resolve().parent
 client = genai.Client(api_key=API_KEY)
 
 PROMPT = """
@@ -252,12 +253,12 @@ def generate_image(prompt_text, attempt_num):
                 response_modalities=["IMAGE", "TEXT"],
             ),
         )
-        output_path = os.path.join(OUTPUT_DIR, f"fig_NAME_attempt{attempt_num}.png")
+        output_path = OUTPUT_DIR / f"fig_NAME_attempt{attempt_num}.png"
         for part in response.candidates[0].content.parts:
             if part.inline_data:
                 with open(output_path, "wb") as f:
                     f.write(part.inline_data.data)
-                print(f"Saved: {output_path} ({os.path.getsize(output_path):,} bytes)")
+                print(f"Saved: {output_path} ({output_path.stat().st_size:,} bytes)")
                 return output_path
             elif part.text:
                 print(f"Text: {part.text[:300]}")
@@ -341,7 +342,9 @@ plt.rcParams.update({
 })
 
 # --- "Ocean Dusk" palette (professional, distinctive, colorblind-safe) ---
-COLORS = ["#264653", "#2A9D8F", "#E9C46A", "#F4A261", "#E76F51",
+# COLORS is the baseline cycle only; coral is reserved for OUR_COLOR so "Ours"
+# never shares a color with a baseline.
+COLORS = ["#264653", "#2A9D8F", "#E9C46A", "#F4A261",
           "#0072B2", "#56B4E9", "#8C8C8C"]
 OUR_COLOR = "#E76F51"       # coral — warm, stands out
 BASELINE_COLOR = "#B0BEC5"  # cool gray — recedes

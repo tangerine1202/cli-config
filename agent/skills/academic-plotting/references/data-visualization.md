@@ -59,10 +59,11 @@ COLORS = {
     "sky":     "#56B4E9",   # Okabe-Ito accessible sky
     "gray":    "#8C8C8C",   # neutral baseline
 }
-COLOR_LIST = list(COLORS.values())
-
 # Semantic colors for highlighting
 OUR_COLOR = "#E76F51"       # coral — warm, draws attention
+
+# Baseline cycle: everything except OUR_COLOR, so "ours" never shares a color with a baseline
+COLOR_LIST = [c for c in COLORS.values() if c != OUR_COLOR]
 BASELINE_COLOR = "#B0BEC5"  # cool gray — recedes
 BEST_BASELINE = "#264653"   # deep teal — strongest competitor
 ```
@@ -273,7 +274,7 @@ def plot_leaderboard(models, scores, highlight_idx=-1, xlabel="Score",
     y_pos = np.arange(len(models))
     colors = [COLORS["gray"]] * len(models)
     if highlight_idx >= 0:
-        colors[highlight_idx] = COLORS["red"]
+        colors[highlight_idx] = OUR_COLOR
 
     bars = ax.barh(y_pos, scores, color=colors, height=0.6)
     ax.set_yticks(y_pos)
@@ -486,7 +487,7 @@ Output: figures/fig_name.pdf, figures/fig_name.png
 """
 import matplotlib.pyplot as plt
 import numpy as np
-import os
+from pathlib import Path
 
 # --- Publication styling ---
 plt.rcParams.update({...})  # Full rcParams block
@@ -500,9 +501,9 @@ fig, ax = plt.subplots(figsize=(3.25, 2.5))
 # ... plotting code ...
 
 # --- Save ---
-out_dir = os.path.dirname(os.path.abspath(__file__))
-fig.savefig(os.path.join(out_dir, "fig_name.pdf"))
-fig.savefig(os.path.join(out_dir, "fig_name.png"), dpi=300)
+out_dir = Path(__file__).resolve().parent
+fig.savefig(out_dir / "fig_name.pdf")
+fig.savefig(out_dir / "fig_name.png", dpi=300)
 plt.close(fig)
 print("Saved: fig_name.pdf, fig_name.png")
 ```

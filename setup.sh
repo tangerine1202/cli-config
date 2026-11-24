@@ -31,6 +31,45 @@ if [ -d nvim ]; then
     rsync -avr nvim $HOME/.config
 fi
 
+# Claude Code skills, agents, and global rules
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+link_dir_contents() {
+    local src_dir="$1"
+    local dest_dir="$2"
+    mkdir -p "$dest_dir"
+    for item in "$src_dir"/*/; do
+        [ -d "$item" ] || continue
+        name="$(basename "$item")"
+        target="$dest_dir/$name"
+        if [ -e "$target" ] && [ ! -L "$target" ]; then
+            echo "  Skipping $name: $target exists and is not a symlink"
+            continue
+        fi
+        ln -sfn "$src_dir/$name" "$target"
+    done
+}
+
+if [ -d "$SCRIPT_DIR/agent/skills" ]; then
+    echo "Linking Claude Code skills..."
+    link_dir_contents "$SCRIPT_DIR/agent/skills" "$HOME/.claude/skills"
+fi
+
+if [ -d "$SCRIPT_DIR/agent/agents" ]; then
+    echo "Linking Claude Code agents..."
+    link_dir_contents "$SCRIPT_DIR/agent/agents" "$HOME/.claude/agents"
+fi
+
+if [ -f "$SCRIPT_DIR/agent/AGENT.md" ]; then
+    mkdir -p "$HOME/.claude"
+    if [ -e "$HOME/.claude/CLAUDE.md" ] && [ ! -L "$HOME/.claude/CLAUDE.md" ]; then
+        mv "$HOME/.claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md.bak"
+        echo "  Backed up existing ~/.claude/CLAUDE.md to ~/.claude/CLAUDE.md.bak"
+    fi
+    ln -sfn "$SCRIPT_DIR/agent/AGENT.md" "$HOME/.claude/CLAUDE.md"
+    echo "  Linked agent/AGENT.md -> ~/.claude/CLAUDE.md"
+fi
+
 # tg-notify (install to ~/.local/bin)
 mkdir -p $HOME/.local/bin
 cp tg-notify.sh $HOME/.local/bin/tg-notify
@@ -112,4 +151,5 @@ echo "Next steps:"
 echo "  1. Edit ~/.tg-notify.env with your Telegram bot credentials"
 echo "  2. Reload your shell: source ~/.zshrc (or ~/.bashrc)"
 echo "  3. Test: tg-notify 'Hello from $(hostname)'"
+echo "  4. Claude Code skills/agents/rules are symlinked into ~/.claude/"
 
